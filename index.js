@@ -9,7 +9,6 @@ function drawMaskedView({regExpPattern, title, inputID}) {
     let input = document.createElement('input');
     input.type = 'text';
     input.id = inputID;
-    input.maxLength = 19;
     form.appendChild(input);
 
 
