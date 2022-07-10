@@ -6,47 +6,86 @@ function drawMaskedView({regExpPattern, title, inputID}) {
     label.htmlFor = inputID;
     form.appendChild(label);
 
+    let divBlock = document.createElement('div');
+    divBlock.className = 'input-div-block';
+    divBlock.style.width = '200px';
+    divBlock.style.height = '25px';
+    form.appendChild(divBlock);
+
     let input = document.createElement('input');
-    input.type = 'text';
+    input.maxLength = regExpPattern.length;
+    input.type = 'number';
+    divBlock.appendChild(input);
+    input.addEventListener('input', onChange);
     input.id = inputID;
-    form.appendChild(input);
 
+    let symbolsNum = regExpPattern.replaceAll(/(\{|\})/g, '').length;
 
-    input.addEventListener('input', (e) => {handleMaskedInput(e, regExpPattern)});
-
-}
-
-function handleMaskedInput(e, regExpPattern){
-    if(e.target.id.toLowerCase().includes('phone')){
-        if (e.target.value){
-            let x;
-            if(e.target.value.length === 1){
-                x = e.target.value.replace(/\D/g, '').match(regExpPattern);
-            }else{
-                x = e.target.value.slice(4).replace(/\D/g, '').match(regExpPattern);
-            }
-            e.target.value = (!x[0] ? '' : '+380') + (x[1] ? `(${x[1]})` : '') + (x[2] ? ` ${x[2]}` : '') + (x[3] ? ` ${x[3]}` : '') + (x[4] ? ` ${x[4]}` : '');
-
-            if(e.target.value[e.target.value.length-1] == ')') {
-                e.target.value = e.target.value.slice(0, -1);
-            }
-            
-        }
-    }
-    if(e.target.id.toLowerCase().includes('ipaddress')){
-
-        if (e.target.value){
-            let x = e.target.value.replace(/\D/g, '').match(regExpPattern);
-
-            e.target.value = (x[1] ? `${x[1]}` : '') + (x[2] ? `.${x[2]}` : '') + (x[3] ? `.${x[3]}` : '') + (x[4] ? `.${x[4]}` : '');
-
-            
-        }
-    }
+    let divTextWidth = parseInt(divBlock.style.width) / symbolsNum;
     
+
+    let constSymbolFlag = false;
+    let variableCounter = 0;
+
+    for (let i = 0; i < regExpPattern.length; i++){
+        
+        const char = regExpPattern[i];
+        if(char === '{'){
+            constSymbolFlag = true;
+            continue;
+        }
+        if(char === '}'){
+            constSymbolFlag = false;
+            continue;
+        }
+
+        const div = document.createElement('div');
+        div.classList.add('input-single-div');
+        div.style.width = `${divTextWidth}px`;
+
+        if(constSymbolFlag ||  !Number.isInteger(parseInt(char))){
+            div.classList.add('const-div');
+            div.innerHTML = char;
+        }else{
+            div.classList.add('variable-div');
+            variableCounter++;
+        }
+        divBlock.appendChild(div);
+    }
+
+    input.maxLength = variableCounter;
+
+    input.addEventListener('click', () => {
+        input.parentElement.getElementsByClassName('variable-div')[0].classList.add('active')
+    
+    }, {once : true});
+
 }
 
-drawMaskedView({regExpPattern: /(\d{0,2})(\d{0,3})(\d{0,2})(\d{0,2})/, title: 'Phone number', inputID: 'phoneNumberMask'});
+const onChange = e => {
 
-drawMaskedView({regExpPattern: /(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)?(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)?(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)?(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)?/, title: 'IP Address', inputID: 'ipAddressMask'});
+    let divs = e.target.parentElement.getElementsByClassName('variable-div');
 
+    if(e.data){
+        divs[e.target.value.length-1].innerHTML = e.data;
+        divs[e.target.value.length-1].classList.remove('active');
+        if(e.target.value.length !== e.target.maxLength) divs[e.target.value.length].classList.add('active');
+    }else{
+        divs[e.target.value.length].innerHTML = '';
+        divs[e.target.value.length+1].classList.remove('active');
+        divs[e.target.value.length].classList.add('active');
+    }
+
+    if(e.target.value.length === e.target.maxLength){
+        let commonDivs = e.target.parentElement.getElementsByClassName('input-single-div');
+        let result = Array.from(commonDivs).reduce((acc, element) => acc + element.innerHTML, '');
+        alert(`Your input is ${result}`);
+
+    }
+}
+
+
+
+drawMaskedView({regExpPattern: '+{380} (00) 000 00 00', title: 'Phone number', inputID: 'phoneInput'});
+
+drawMaskedView({regExpPattern: '255.255.255.255', title: 'IP Address', inputID: 'idAddressInput'});
